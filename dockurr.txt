@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# Function to show help
+show_help() {
+    echo "Usage: dockurr [OPTIONS]"
+        echo ""
+            echo "Options:"
+                echo "  --help          Show this help message"
+                    echo "  --windows       Menu to download or run (name = version)"
+                        echo "  launchwin       Launch any existing container by name"
+                        }
+
+                        # Function to start an existing container
+                        launch_container() {
+                            local name=$1
+                                if [ "$(docker ps -aq -f name=^/${name}$)" ]; then
+                                        echo "Launching container: $name..."
+                                                docker start -ai "$name"
+                                                    else
+                                                            echo "Error: Container '$name' not found."
+                                                                    echo "Use 'docker ps -a' to see your containers."
+                                                                        fi
+                                                                        }
+
+                                                                        # Function to run/create a new VM
+                                                                        run_vm() {
+                                                                            local version=$1
+                                                                                local container_name="windows-$version"
+
+                                                                                    if [ "$(docker ps -aq -f name=^/${container_name}$)" ]; then
+                                                                                            launch_container "$container_name"
+                                                                                                else
+                                                                                                        echo "Creating new $version container named: $container_name..."
+                                                                                                                docker run -it --name "$container_name" \
+                                                                                                                            -e "VERSION=$version" \
+                                                                                                                                        -p 8006:8006 \
+                                                                                                                                                    --device=/dev/kvm \
+                                                                                                                                                                --cap-add NET_ADMIN \
+                                                                                                                                                                            --stop-timeout 120 \
+                                                                                                                                                                                        dockurr/windows
+                                                                                                                                                                                            fi
+                                                                                                                                                                                            }
+
+                                                                                                                                                                                            # Main logic
+                                                                                                                                                                                            case "$1" in
+                                                                                                                                                                                                --help)
+                                                                                                                                                                                                        show_help
+                                                                                                                                                                                                                ;;
+                                                                                                                                                                                                                    launchwin)
+                                                                                                                                                                                                                            echo "Type the container name you want to launch:"
+                                                                                                                                                                                                                                    read -r custom_name
+                                                                                                                                                                                                                                            launch_container "$custom_name"
+                                                                                                                                                                                                                                                    ;;
+                                                                                                                                                                                                                                                        --windows)
+                                                                                                                                                                                                                                                                echo "Select action: [download/run]"
+                                                                                                                                                                                                                                                                        read -r action
+
+                                                                                                                                                                                                                                                                                if [ "$action" == "download" ]; then
+                                                                                                                                                                                                                                                                                            echo "Type what version you want (tiny10, tiny11, core11, 11, 10, 8.1, 8, 7, vista, xp):"
+                                                                                                                                                                                                                                                                                                        read -r version
+                                                                                                                                                                                                                                                                                                                    docker pull dockurr/windows
+                                                                                                                                                                                                                                                                                                                                echo "Download check for $version complete."
+
+                                                                                                                                                                                                                                                                                                                                        elif [ "$action" == "run" ]; then
+                                                                                                                                                                                                                                                                                                                                                    echo "What version of Windows will you run? (tiny10, tiny11, core11, 11, 10, 8.1, 8, 7, vista, xp):"
+                                                                                                                                                                                                                                                                                                                                                                read -r version
+                                                                                                                                                                                                                                                                                                                                                                            run_vm "$version"
+                                                                                                                                                                                                                                                                                                                                                                                    fi
+                                                                                                                                                                                                                                                                                                                                                                                            ;;
+                                                                                                                                                                                                                                                                                                                                                                                                *)
+                                                                                                                                                                                                                                                                                                                                                                                                        if [ -n "$1" ]; then
+                                                                                                                                                                                                                                                                                                                                                                                                                    launch_container "$1"
+                                                                                                                                                                                                                                                                                                                                                                                                                            else
+                                                                                                                                                                                                                                                                                                                                                                                                                                        show_help
+                                                                                                                                                                                                                                                                                                                                                                                                                                                fi
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        ;;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        esac
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        
